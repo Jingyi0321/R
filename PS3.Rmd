@@ -1,0 +1,280 @@
+---
+title: "Problem Set 3"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+---
+-----
+
+### NAME: Jingyi Fang
+### USC ID: 8020938911
+### People I discussed this with: Jing Zhao, Johnny Geng, Eric Ge, Richard Yang, Jack Shi
+### **DUE DATE: 2/6 at 11am **  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+#1. Data Reconnaissance
+
+First things first, get to know the data by reading https://bikeshare.metro.net/about/data/. In your own words, explain what it means if an observation has "Virtual Station" listed in the checkout and return kiosks.
+
+# It means that a bike, which is used remotely for a special event or in a situtaion in which a bike could not otherwise be checked in or out to a station, is checked in or checked out by staff. 
+
+#2. Getting the station data
+
+## a)
+
+On https://bikeshare.metro.net/about/data/, find the "Stations Table" csv file and download it. Make a subfolder in your BUAD312/data folder called "bike_data" and put the "Stations Table" csv in that folder.
+
+(Note: you can do this with a single command in R! Look at the documentation for the command `download.file` using the command `?download.file`. You will also need the URL for the csv file which you can get by right-clicking on the link for the "Stations Table" csv and clicking "Copy Link Address" or "Copy Link" depending on which browser you use. If you want to use this method, put your code to download the file in your question 2a R chunk below.)
+
+**Create a variable named `stations_table_csv_path` with the path to your downloaded "Stations Table" csv. Prove that you downloaded the "Stations Table" csv file to the correct folder by using the `file.exists` function with your `stations_table_csv_path` variable as an argument.**
+```{r question2a}
+
+station_table_cvs_path <- ("~/Documents/BUAD312/data/bike_data/metro-bike-share-stations-2020-01-01.csv")
+file.exists(station_table_cvs_path)
+
+
+```
+
+
+## b)
+
+Now that you've downloaded the file, we need to get it into R.  Before going further, let's discuss what a csv file is.  A csv file is a "comma-separated values" file, which is a way of storing rectangular data such as that commonly seen in Excel or in a data frame in R.  The basic idea is very simple and is captured in the name... each line of a csv file corresponds to a row of the data frame and each individual value in that row is separated by commas.  For example, here are the first four lines of the file we just downloaded:
+
+```
+Station_ID,Station_Name,Go_live_date,Region ,Status
+3000,Virtual Station,7/7/2016,N/A,Active
+3005,7th & Flower,7/7/2016,DTLA,Active
+3006,Olive & 8th,7/7/2016,DTLA,Active
+```
+
+
+Fortunately there is a great package for reading csv files and other "flat" data files called "readr" which is a part of the tidyverse. Specifically we will be using the `read_csv` function.
+
+**Load the "Stations Table" csv and assign the resulting data frame to a variable called "stations". Print out the number of stations in each region.**
+```{r question2b}
+
+stations<- read_csv(station_table_cvs_path)
+
+stations %>%
+  group_by(Region) %>%
+  count()
+
+  
+```
+
+
+#3. Getting the trips data
+
+## a)
+
+For this problem set, we will spare you from having to scrape the data from the LA Metro website yourself.  Instead, download the zip file on Blackboard called "bike_csv_files.zip", move the zip file to your BUAD312/data/bike_data folder and unzip the .zip file. You should now have a new "bike_csv_files" subfolder in your bike_data folder. 
+
+## b)
+
+If you open the bike_csv_files folder, you will see that it contains a bunch of separate csv files. We need to read each of these csv files and combine them into one big data frame. First we need to get a vector of the names of all of these csv files. Sure, you could type all of them into R manually, but fortunately there's a much easier way to do this!
+
+**Use the `dir` function to get a vector of all of the files in the bike_csv_files folder and assign this to a variable called csv_filenames.**
+(Note: By default, the `dir` function will display the files in your current working directory. If you want to display the files in another folder, you must give that path as an argument to the `dir` function.  Also, set the argument `full.names` to be `TRUE` so that we get the full path to each file.)
+```{r question3b}
+csv_filenames <- dir(path = "~/Documents/BUAD312/data/bike_data/bike_csv_files", full.names = TRUE)
+
+```
+
+## c)
+
+Now we are ready to read all of these csv files into R! In the code chunk below, we give you the code to read in the files.  You'll see that we use a function called `map`, which we use so that the function `read_csv` is applied to each element of the vector `csv_filenames`.  Have a look at this .gif for a visual depiction of what `map` does: https://en.wikipedia.org/wiki/Map_(higher-order_function)#/media/File:Mapping-steps-loillibe-new.gif
+
+**Simply uncomment the code in the next line.**
+
+```{r question3c}
+trip_data <- csv_filenames %>% map(read_csv)
+
+```
+
+## d)
+
+The object `trip_data` is a list of data frames.  Each data frame corresponds to one of the csv files.  If `mylist` is a list object, then `mylist[[5]]` can be used to look at the 5th element in that list.  **In the code chunk below, use the function `glimpse` to print out some information about the third data frame in the list.**
+
+```{r question3d}
+glimpse(trip_data[[3]])
+```
+
+## e)
+
+We have a list of data frames and we'd like to put them all together into one giant data frame.  Click here to see a picture of the operation we're describing: https://miro.medium.com/max/3932/1*uG1vjoSQj7gMm8craCj2xA.png  The difference is that we have not just two but many of these data frames to bind together.
+
+**Simply uncomment the code in the next line.**
+
+```{r question3e}
+df <- bind_rows(trip_data)
+```
+
+
+# 4. Checking that the data is reasonable
+
+## a) 
+
+We should never just assume (or hope) that a data set is correct.  We need to think of simple ways of checking that the data is what we think it is.  For example, we see variables named `start_time` and `end_time`.  We'd expect that `start_time <= end_time` should always hold.  Write some code that would verify this.  In particular, write code that would return any rows of the data frame where this does not hold. Are there any such rows?  If so, how many?
+
+```{r question4a}
+df%>%
+filter (start_time > end_time)
+```
+
+# Yes, there are 7 rows.
+
+## b)
+
+There's also a column called `duration`.  Write code to create a new column in this data frame called `my_duration` in which you take the difference between the end and start times.  Furthermore, write code that would return any rows in which `duration` and `my_duration` are different.  Are there any such rows?  If so, how many?
+
+```{r question4b}
+df %>%
+  mutate(my_duration = end_time -start_time)%>%
+  filter (my_duration != duration)
+
+```
+
+# Yes, there are 92244 rows. 
+
+
+## c)
+
+"Spoiler alert" for parts (a) and (b)... let's try to understand why we get rows outputted in both (a) and (b).  Take the output from (b) and order the rows according to `my_duration`, from largest to smallest.  What do you notice about the value of `duration` for the largest values of `my_duration`?  Looking back at the description of the data on the website, can you explain why that particular value appears?
+
+```{r question4c}
+df %>%
+  mutate(my_duration = end_time -start_time)%>%
+  filter (my_duration != duration) %>%
+  arrange(desc(my_duration))
+```
+
+# According to the website, trip lengths are limited at maximum of 24 hours. Thus, duration is maximized at 1440 minutes. My duration is calculated by end-time minus start-time. So, my duration can exceed 1440 minutes. 
+
+
+## d)
+
+Write code that returns a data frame like in (b) but where you've excluded any cases in which that common value from (c) is present.  Do any rows still remain in the output?
+```{r question4d}
+df %>%
+  mutate(my_duration = end_time -start_time)%>%
+  filter (my_duration != duration) %>%
+  arrange(desc(my_duration))%>%
+  filter (duration != 1440)
+```
+
+# Yes, there are still 88341 rows. 
+
+## e)
+
+ Spoiler alert for part (d)... let's try to understand why we still get rows outputted in (d).  Write code that takes the output from (d) and does the following: 
+ - adds a new column to the data frame from (d) called `duration_diff`, which is the difference between the duration provided in the data set and the duration that you calculated.
+ - only has the following: `start_time`, `end_time`, `duration`, `my_duration`, `duration_diff`.  
+ - orders the rows according to `duration`, from smallest to largest.
+ 
+Use the function `View` to examine the first 15 rows of the data frame you generate.  Do you notice two common values that appear?  Now look at the dates (and times) associated with these rows.  Do you see any pattern?  Is there a particular time of day?  Is there a commonality to the dates and which of the two values occur? Do you understand why `duration` does not match `my_duration` in these first 15 rows? This may require some thought and detective work.  But the "aha!" moment you get once you figure it out should be worth the time spent puzzling over this!  If necessary, you might try googling some of the dates and browsing the results.  Also, does this explain what you say in (a)?
+
+```{r question4e}
+df %>%
+  mutate(my_duration = end_time -start_time)%>%
+  filter (my_duration != duration) %>%
+  arrange(desc(my_duration))%>%
+  filter (duration != 1440)%>%
+  mutate(duration_diff = duration - my_duration)%>%
+  select("start_time", "end_time", "duration", "my_duration", "duration_diff")%>%
+  arrange(duration)
+  
+  
+```
+ 
+# Only 60 and -60 occur in duration difference. All first 15 rows of the data are in the three common dates: November 5th, March 10th and March 11th, and times are all around 1AM to 3AM. The difference between "duration" and "my_duration" is becuase of the switching of winter time and summer time. Yes, it does explain question (a) because start time can be greater than  end time due to this switch.
+
+## f)
+
+Write code that returns a data frame like in (d) but where you've excluded any cases in which those common two values from (e) are present.  Do any rows still remain in the output? 
+
+```{r, question4f}
+df %>%
+  mutate(my_duration = end_time -start_time)%>%
+  filter (my_duration != duration) %>%
+  arrange(desc(my_duration))%>%
+  filter (duration != 1440)%>%
+  mutate(duration_diff = duration - my_duration)%>%
+  select("start_time", "end_time", "duration", "my_duration", "duration_diff")%>%
+  arrange(duration)%>%
+  filter (duration_diff != 60 & duration_diff != -60)
+```
+
+# Yes, there are still 88303 rows.
+
+## g)
+
+Spoiler alert for part (f)... let's try to understand why we still get rows outputted in (f).  Starting with **the original data frame you created in 3(e)**, create a new column called `date_to_nearest_month` using the code `date_to_nearest_month = floor_date(start_time, "month")`.  The function `floor_date` is defined in the R package `lubridate`, so be sure to load it.  (If you haven't installed it yet on your computer, you will need to do this before loading it.)  Here we are using the function `floor_date` to give us the year and month each ride took place (that is, ignoring the day and time).  Make a new data frame where each row corresponds to a different value of `date_to_nearest_month` and there is a column called `average_duration` in which you calculate the average duration within each such time interval.
+
+```{r question4g}
+
+library(lubridate)
+df <- bind_rows(trip_data)
+
+df%>%
+  mutate (date_to_nearest_month = floor_date(start_time, "month"))%>%
+  group_by (date_to_nearest_month)%>%
+  summarize (average_duration = mean(duration))
+
+
+```
+
+
+## h) 
+
+Make a scatterplot with `date_to_nearest_month` on the x-axis and `average_duration` on the y-axis.  What do you observe?
+```{r question4h}
+library(lubridate)
+df <- bind_rows(trip_data)
+
+df1 <- df%>%
+  mutate (date_to_nearest_month = floor_date(start_time, "month"))%>%
+  group_by (date_to_nearest_month)%>%
+  summarize (average_duration = mean(duration))
+             
+ggplot(df1, aes(x = date_to_nearest_month, y = average_duration))+
+  geom_point()
+
+```
+
+# Extremely high avergae durations occur on July 2016, August 2016, Semptember 2016, January 2017, Feburary 2017, and March 2017 compared to other data.
+
+
+## i)
+
+Based on your observations in (h), perform some detective work to try to understand what you see in (h).  Once you think you understand what is happening, please explain.
+
+# Metro Bike recorded duration in different units in different quarters of different year. Specifically, Metro Bike records duration in seconds in quarter 3 of 2016 and quarter 1 of 2017, while records duration in minutes in other quarters of 2016, 2017, 2018, and 2019. Because of the measurement unit difference, there are extreme high average durations occur on Quarter 3 of 2016 and Quarter 1 of 2017. 
+
+## j)
+
+Based on your explanation in (i), write code that returns a data frame like in (f) but where you've excluded any cases that can be explained by what you figured out in (i).  Do any rows still remain in the output?
+
+```{r question4j}
+library(lubridate)
+df <- bind_rows(trip_data)
+
+df%>%
+  mutate (date_to_nearest_month = floor_date(start_time, "month"))%>%
+  group_by (date_to_nearest_month)%>%
+  summarize (average_duration = mean(duration))%>%
+  filter(average_duration < 1000)
+```
+
+# Yes, there are still 33 rows. 
+
+## k)
+
+Based on your observations in (a) - (j), think about all the cases in which `my_duration` are different from `duration`.  Are there any values of `duration` that you think should be changed?  Explain which values (if any) of `duration` you think should be changed before using the data and which values you would leave as they are.  Explain your reasoning.
+
+# As I mentioned in question(i), Metro Bike recorded duration in different units in different quarters of different year. Thus, before we combine all the data sets in the bike_csv_files, we have to standardize the unit of duration. Specifically, I think duration date with unit of second need to change to unit of minute, while duration data with unit of minute can leave unchanged. 
+

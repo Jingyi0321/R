@@ -1,0 +1,179 @@
+---
+title: "Problem Set 8"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+---
+-----
+
+### NAME: Jingyi Fang
+### USC ID: 8020938911
+### People I discussed this with:
+### **DUE DATE: 4/21 at 11am **  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Start by downloading the file `psychic.csv` from blackboard (go to Content -> Data) and putting it in your `BUAD312/data/` folder.  This data was collected in class on April 9, 2020 via zoom poll in the 12pm and 2pm sessions.
+
+#1.
+
+Load the data using a function included in the `tidyverse` package.
+
+```{r question1}
+library(tidyverse)
+csv_path <- ("~/Documents/BUAD312/data/psychic.csv")
+psychic_data <- read_csv(csv_path)
+```
+
+#2. 
+
+In class, I asked everyone to think of a number between 1 and 4.  In an attempt to read everyone's mind simultaneously, I guessed that you were all thinking of "3".  I then conducted a zoom poll to see if I was correct.  **Create a new column called `correct` that says `"yes"` or `"no"` depending on whether I guessed correctly.  Also, compute the proportion that I guessed correctly.** Hint: The function `if_else` will be useful here.  To learn how to use it, try running `if_else(2 < 3, "hello", "goodbye")` the following in the console and then try replacing `2 < 3` with `2 > 3`.
+
+```{r question2}
+psychic_data%>%
+  mutate(correct = if_else(answer == 3, "yes", "no"))%>%
+  filter(correct == "yes")%>%
+  summarize(num_of_correct = n())%>%
+  summarize(proportion_of_correct = num_of_correct / 39)
+```
+
+#3.
+
+Regrettably, I am not psychic.  However, I did once hear that when given the choice of 1 to 4, people are more likely to answer "3" than any other number.  The data I collected in class may be helpful for investigating this claim.  Let's formulate this as a hypothesis testing problem.  In particular, **define a single population parameter and then state the null and alternative hypotheses.**   Note: You can write math notation in Rmd and have it show up nicely formatted in an html file.  To do this, you put your mathematical notation between pairs of dollar signs.  For example, in the Deflategate example from class I could write $H_0:\mu_P = \mu_C$ vs. $H_A:\mu_P \neq \mu_C$.  Notice that we put a backslash before writing out the name of a Greek letter.  Other Greek letters we might need here or later are $\pi$, $\theta$, $\beta$, and $\alpha$.  Please don't put your answer in an R code block because we are not asking for code here but rather a written response (that happens to have some math symbols in it). If you want to learn more about this, you can look here: https://www.stat.cmu.edu/~cshalizi/rmarkdown/#math-in-r-markdown
+
+# Population Parameter: population proportion of guessing correctly
+# $H_0:\pi = 0.25$
+# $H_A:\pi \neq 0.25$
+# $\alpha = 0.05$
+
+#4. 
+What test statistic would you use here?
+
+# The test statistic is the sample proportion of guessing correctly.
+
+#5.
+What is the value of the observed test statistic? Hint: You actually calculated this earlier.
+
+# The observed test statistic is 0.4615385.
+
+#6.
+In this part, we are going to perform a Monte Carlo simulation to generate the null distribution of the test statistic (from problem 4) ourselves without using the `infer` R package.
+
+##a)
+The "null distribution" of a test statistic refers to the sampling distribution of that test statistic under the assumption that the null hypothesis is true.  Your Monte Carlo simulation will operate under this assumption.
+
+Hint: We've seen how to do Monte Carlo simulations involving rolling multiple dice.  (I recommend reviewing the code for that before attempting this.) Under the null hypothesis, can we think of a data set as the result of rolling n different 4-sided dice, where n is the number of rows in our data set?  Start with a small tibble with 4 rows (similar to how our die had 7 rows).
+
+**For each of the 5000 data sets generated under the null hypothesis, calculate the test statistic from problem 4.  Assign these 5000 values to an object called `null_distribution`.**
+
+```{r question6a}
+library(moderndive)
+die <- tibble(result = 1:4)
+null_distribution <- die%>%
+  rep_sample_n(39, replace = TRUE, reps = 5000)%>%
+  mutate(correct = if_else(result == 3, "yes", "no"))%>%
+  filter(correct == "yes")%>%
+  summarize(num_of_correct = n())%>%
+  group_by(replicate)%>%
+  summarize(proportion_of_correct = num_of_correct / 39)
+
+
+```
+
+##b)
+Make a histogram showing the null distribution.  Add a vertical line to this showing the observed test statistic's value.  Hint:  `+ geom_vline(xintercept = 10)` would draw a vertical line at x = 10 on an existing plot.
+
+```{r question6b}
+null_distribution%>%
+  ggplot(aes(x = proportion_of_correct))+
+  geom_histogram(binwidth = 0.01, color = "white")+
+  geom_vline(xintercept = 0.4615385)+
+  labs(x = "proportion of guessing correctly", y = "counts", title = "The null distribution of sample proportions of guessing correctly")
+
+```
+
+#7.
+Now let's use the `infer` package to do this.
+
+##a)
+Using the `infer` pipeline (`specify`, `hypothesize`, etc.), create 5000 values of the test statistic and assign these values to an object called `null_distribution_using_infer`
+
+```{r question7a}
+library(infer)
+srs<- die%>%
+  rep_sample_n(39, replace = TRUE)%>%
+  mutate(correct = if_else(result == 3, "yes", "no"))
+
+null_distribution_using_infer <- srs%>%
+  specify(response = correct, success = "yes")%>%
+  hypothesize(null = "point", p = 0.25)%>%
+  generate(reps = 5000, type = "simulate")%>%
+  calculate(stat = "prop")
+```
+
+##b)
+
+Use the appropriate functions from the `infer` package to make a plot similar to that in problem 6b in which you show the null distribution of the test statistic together with the observed test statistic's value. Hint: You'll want to use the argument `type = "simulate"` in the `generate` function.
+
+```{r question7b}
+null_distribution_using_infer%>%
+  visualise()+
+  shade_p_value(obs_stat = 0.4615385,
+                direction = "two_sided")
+```
+
+##c)
+
+Use the appropriate function from the `infer` package to compute the p-value.
+
+```{r question7c}
+null_distribution_using_infer%>%
+  get_p_value(obs_stat = 0.4615385,
+                direction = "two_sided")
+```
+
+##d) 
+
+Make a decision based on the hypothesis test that you set up starting in problem 3.  State your decision in the proper language.
+
+# Since p-value < 0.05, at the 5% level of significance, there is enough evidence to reject the null hypothesis that the population proportion of guessing correctly is 0.25. We favor the alternative hypothesis that the population proportion of guessing correctly is not 0.25.
+
+##e)
+
+Recalculate the p-value if we restrict ourselves to the data from the 2pm class.  What decision would you make in this case?
+
+```{r question7e}
+population_proportion2 <- psychic_data%>%
+  filter(class == "2pm")%>%
+  mutate(correct = if_else(answer == 3, "yes", "no"))%>%
+  filter(correct == "yes")%>%
+  summarize(num_of_correct = n())%>%
+  summarize(proportion_of_correct = num_of_correct / 16)%>%
+  pull(proportion_of_correct)
+
+srs2<- die%>%
+  rep_sample_n(16, replace = TRUE)%>%
+  mutate(correct = if_else(result == 3, "yes", "no"))
+
+null_distribution_using_infer2 <- srs2%>%
+  specify(response = correct, success = "yes")%>%
+  hypothesize(null = "point", p = 0.25)%>%
+  generate(reps = 5000, type = "simulate")%>%
+  calculate(stat = "prop")
+
+null_distribution_using_infer2%>%
+  get_p_value(obs_stat = population_proportion2,
+                direction = "two_sided")
+
+
+
+```
+
+# Since p-value > 0.05, at the 5% level of significance, we fail to reject the null hypothesis that the population proportion of guessing correctly is 0.25.
+
+
+# What You Should Upload to Blackboard
+Knit this .Rmd file into an html file. Upload both the .html and .Rmd files as a **single** .zip file to Blackboad by the due date. You can find instructions for making a .zip file on Piazza: https://piazza.com/class/k54ht3tm1d64u5?cid=11

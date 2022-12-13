@@ -1,0 +1,114 @@
+---
+title: "Problem Set 4"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+---
+-----
+
+### NAME: Jingyi Fang
+### USC ID: 8020938911
+### People I discussed this with:Jing Zhao, Jack Shi
+### **DUE DATE: 2/20 at 11am **  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1.
+
+We will use three R packages in this problem set.  (1) `tidyverse` (as always), (2) `moderndive` (from our textbook), and (2) the `nycflights13` R package (for the data set). **Write code in the code chunk below to load these two packages**
+
+```{r question1}
+#install.packages("moderndive")
+#install.packages("nycflights13")
+library(moderndive)
+library(nycflights13)
+
+```
+
+#2. 
+Create a new data frame called `df` with all flights occurring in January 2013 and with just two columns: the first column should give the number of seats in the plane and the second column should give the distance traveled by that plane in that flight.  Hint: You'll want to use the data frames `flights` and `planes`.
+
+
+```{r question2}
+library(nycflights13)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+
+
+df <- flights%>%
+  filter(year == 2013, month == 1)%>%
+  left_join(planes, by = "tailnum")%>%
+  select(seats,distance)
+
+
+
+```
+
+#3.  
+Make a plot that would help one to assess whether there is a relationship between the number of seats on a plane and the distance the plane travels. Include the line of best fit on this plot.  As always, be sure there is an informative title and informatively-labeled axes so that someone who doesn't know the data set will still understand what is being shown without asking questions.  Also, use `?flights` to look up the units of any variables so you can include these in the axis labels.
+
+```{r question3}
+
+ggplot(df,aes(x = seats, y = distance))+
+  geom_point()+
+  geom_smooth(method = "lm") +
+  labs(x = "number of seats", y = "distance a plane travels(miles)", title = "The relationship between the number of seats on a plane and the distance the plane travels")
+
+```
+
+#4. 
+Compute the correlation between the number of seats on a plane and the distance it travels.  Hint: Before computing the correlation, consider using `filter` to remove any flights with missing information.
+
+```{r question4}
+df%>%
+  filter(!is.na(seats) & !is.na(distance))%>%
+  summarize(correlation = cor(seats,distance))
+```
+
+#5.
+Write code that fits the linear regression model and generates the regression table.
+
+```{r question5}
+
+fit <- lm(distance ~ seats, data = df)
+get_regression_table(fit)
+
+```
+
+#6.
+Imagine that you are sitting next to an off-duty pilot during a flight. Explain in words the meaning of the slope value that you calculated in the previous problem.
+
+# The slope means that if the number of seats in a plane increses by 1 unit, the distance this plane travels will increase by 5.257 miles.
+
+#7.
+What would you expect the average distance of a flight to be for a plane with 160 seats? (Answer in words although if you produce a numeric estimate, please show your work by writing code.)
+
+```{r question7}
+
+fit <- lm(distance ~ seats, data = df)
+get_regression_points(fit, newdata=tibble(seats = 160))
+```
+
+# The average distance will be 1150.845 miles.
+
+#8.
+
+```{r question8}
+
+fit <- lm(distance ~ seats, data = df)
+get_regression_points(fit, newdata=tibble(seats = 2000))
+
+df%>%
+  summarize(max_seats = max(seats,na.rm = TRUE))
+```
+Answer the same question as above, but with 2000 seats rather than 160.
+
+# The maxmium seat in the df data set is 400. Thus, 2000 seats is an extrapolation. Thus, we can not predict a distance for a plane with 2000 seats. 
+
+
+# What You Should Upload to Blackboard
+Knit this .Rmd file into an html file. Upload both the .html and .Rmd files as a **single** .zip file to Blackboad by the due date. You can find instructions for making a .zip file on Piazza: https://piazza.com/class/k54ht3tm1d64u5?cid=11

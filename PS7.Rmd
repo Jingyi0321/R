@@ -1,0 +1,127 @@
+---
+title: "Problem Set 7"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+---
+-----
+
+### NAME: Fang Jingyi
+### USC ID: 8020938911
+### People I discussed this with:Johnny Geng
+### **DUE DATE: 4/2 at 11am **  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Start by downloading the file `usc_cafes.Rdata` from blackboard (go to Content -> Data) and putting it in your `BUAD312/data/` folder.  This data is courtesy of USC Hospitality. Many thanks to them for sharing their data with us!
+
+
+#1. Getting started with this new data set
+You and a friend are thinking of starting a food delivery
+service for USC.  To understand the demand for food on campus,
+you decide to gather data. Right before Fall 2019 semester, 
+you chose a simple random sample of 30 time intervals (each of length 15 minutes). You observed Lemonade during these 30 times, and your friend observed The Habit at these same 30 times.
+
+Load the data and then use the function `glimpse` to look at the variables included in the data frame.  As always, if R says it can't find a function, think about what R package(s) may be needed.
+```{r question1}
+library(tidyverse)
+load("/Users/wangxiaoming/Documents/BUAD312/data/usc_cafes.Rdata")
+glimpse(cafe_data)
+```
+
+#2. 
+Based on this sample of data, give an estimate of the median number of checks in a 15-minute interval at Lemonade in Fall 2019.
+```{r question2}
+cafe_data%>%
+  summarize(median_lemonade = median(num_checks_lemonade))
+```
+
+#3.
+When you told your friend the median number of checks in your sample, he was 
+surprised because his intuition was that the median number of checks would be
+two to three times the value that you observed.  This makes you wonder how variable your estimate of the population median is.  After all, you only observed 30 time intervals. To get a sense of the variability of your estimate of the population median, let's use the bootstrap.
+
+##a)
+Produce a plot showing the bootstrap distribution of the sample median number of checks in a 15-minute interval at Lemonade. Set the random seed to 123 at this point in the problem set so that we'll all get the same results.  Use 5000 bootstrap replicates, and assign the 5000 medians you get to a data frame called `bootstrap_medians`.
+
+```{r question3a}
+library(moderndive)
+set.seed(123)
+bootstrap_medians <- cafe_data%>%
+  rep_sample_n(30,replace = TRUE, reps = 5000)%>%
+  summarize(median_lemonade = median(num_checks_lemonade))
+
+bootstrap_medians%>%
+  ggplot(aes(x = median_lemonade))+
+  geom_histogram(color = "white")+
+  labs(x = "median number of checks", y = "count", title = "The bootstrap distribution of the sample median number of checks in a 15-minute interval at Lemonade in Fall 2019")
+
+```
+
+##b)
+Give the bootstrap estimate of the standard error of your estimator.
+
+```{r question3b}
+bootstrap_medians%>%
+  summarize(sd(median_lemonade))
+
+```
+
+##c) 
+Use the bootstrap to compute a 95% confidence interval for the median number of checks in a 15-minute interval at Lemonade in Fall 2019.  In addition to providing the code, fill in the blanks in the sentence below.
+
+```{r question3c}
+bootstrap_medians%>%
+  summarize(lower = quantile(median_lemonade,
+            probs = 0.025),
+            upper = quantile(median_lemonade,
+            probs = 0.975))
+```
+
+We are 95% confident that the median number of checks in Fall 2019 at Lemonade was between _8.5__ and _19	__.
+
+##d) 
+Explain the meaning of the sentence above.
+
+If we repeat the process of getting a SRS and forming this interval over and over again, we'd find that roughly 95% of those intervals would include the true median number of checks in a 15-minute interval in Fall 2019 at Lemonade.
+
+#4.
+Since your friend and you were observing the two places at the same time, you are curious to see how strong of a relationship there is between sales at the two places.
+
+##a)
+Make a scatterplot of the number of checks at Lemonade versus the number of checks at The Habit.
+
+```{r question4a}
+cafe_data%>%
+  ggplot(aes(x = num_checks_lemonade, y = num_checks_habit))+
+  geom_point()+
+  labs(x = "Number of checks at Lemonade", y = "Number of checks at The Habit", title = "The relationship between number of checks at Lemonade and number of checks at The Habit")
+```
+
+##b)
+Calculate the correlation between the number of checks at these two locations.
+
+```{r question4b}
+cafe_data%>%
+  summarize(correlation = cor(num_checks_lemonade, num_checks_habit))
+```
+
+##c)
+Produce a 95% confidence interval for the correlation coefficient between the number of checks at these two locations in Fall 2019.
+
+```{r question4c}
+cafe_data%>%
+  rep_sample_n(30,replace = TRUE, reps = 5000)%>%
+  summarize(correlation = cor(num_checks_lemonade, num_checks_habit))%>%
+  summarize(lower = quantile(correlation,
+            probs = 0.025),
+            upper = quantile(correlation,
+            probs = 0.975))
+  
+```
+
+# What You Should Upload to Blackboard
+Knit this .Rmd file into an html file. Upload both the .html and .Rmd files as a **single** .zip file to Blackboad by the due date. You can find instructions for making a .zip file on Piazza: https://piazza.com/class/k54ht3tm1d64u5?cid=11

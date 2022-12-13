@@ -1,0 +1,149 @@
+---
+title: "Problem Set 2"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+---
+-----
+
+### NAME: Jingyi Fang
+### USC ID: 8020938911
+### People I discussed this with: Johnny Geng, Jing Zhao, Jack Shi
+### **DUE DATE: 1/23 at 11am **  
+
+-----
+
+# Notes before you start:
+
+1) Knitting this document will give an error until you do the setup part (first code chunk).
+2) Start by downloading `wine_data_description.html` and `wine_data.Rdata` from blackboard and put them both in your `BUAD312/data` folder.
+3) Open `wine_data_description.html` from your `BUAD312/data` folder and read it.
+4) **The premise of this problem set:** Suppose you are a data analyst intern at a (totally fictional) wine rating mobile app company "Whine" and your boss gives a data set of wine reviews from the mobile app. Your boss has a bunch of questions about the data set, and your job as a data analyst is to create visualizations using `R` and `ggplot2` (which we'll load through loading the `tidyverse`) to answer your boss' questions.
+5) In every case that you are asked to make a plot, make sure that there are informative, human-readable labels for every axis.  Also, make reasonable choices about how you might customize plots (for example, adjusting the `binwidth` parameter for a histogram or adjusting the transparency of points in a scatterplot).
+
+
+# Load tidyverse and the wine rating data set
+
+**Load the tidyverse R package.  Also, load the `.Rdata` file containing the wine data set using the `load()` function.**
+
+```{r setup}
+library(tidyverse)
+load("/Users/wangxiaoming/Documents/BUAD312/data/wine_data.Rdata")
+```
+
+
+# Say hello to the wine rating tibble
+
+
+
+## 1.
+First off, let's figure out how many reviews are in this data set.
+**Print the `wine_data` tibble and use the `nrow` function to see the number of rows in the data set.**
+
+### a)
+
+```{r question1}
+print(wine_data)
+nrow(wine_data)
+```
+
+### b) 
+
+For each of the following variables, replace the question mark with the type of the variable (be as specific as you can be).
+
+|variable         |type |
+|:---             |:----|
+|country          | nominal variable |
+|points           | discrete varibale  |
+|year             | discrete variable   |
+|binned_num_words | ordinal variable  |
+
+## 2.
+
+### a)
+Your manager wants to get a better idea of the distribution of the prices of the wines reviewed in this data set. Is the distribution skewed?  And if yes, is it skewed left or skewed right?  **Make a plot that you think best answers this question. Include labels for each axis and give a short summary of what the plot shows.**
+```{r question2a}
+ggplot (data = wine_data, mapping = aes (x = price))+
+  geom_histogram(color = "white", binwidth = 5)+ xlim(0, 250) + 
+   labs (x = "price", y = "number of wines", title = "Distribution of wine prices")
+
+```
+# This distribution is skewed to the right. This plot shows that most of the wines have a price range between $25 to $175. Very few wines have prices higher than $250.
+
+
+
+### b) 
+
+A product manager wants to know if there needs to be a word limit for the reviews. Some people in the company think that users should have the ability to say as much as they want in their reviews, but the engineering team is concerned that people will abuse this and write extremely long reviews that will take up enormous amounts of storage space. The product manager wants to know the distribution of the number of words in the dataset. **Using the data set, make a plot that you think best answers this question. As always, label all axes and make any adjustments to the plot as you see fit.  Do you think the engineering team's concern is well-founded? Why or why not?**
+
+```{r question2b}
+ggplot (data = wine_data, mapping = aes (x = num_words))+
+  geom_histogram(color = "white")+
+   labs (x = "number of words", y = "number of reviews", title = "Distribution of review words")
+```
+# I think engineering team's concern is not well-founded. Because as the plot shows, most respondents write a review with number of words from 30 to 60. Very few people will write a review longer than 90 words. Thus, it's unlikely that people will abuse this and write extremely long reviews that will take up enormous amounts of storage space.
+
+
+## 3.
+
+### a)
+
+Another day, another question from your manager. Your manager suspects that the more that a reviewer likes a wine, the more this reviewer will tend to write about the wine.  She asks you for a plot that might be used to investigate whether her hunch holds.
+
+**Make two plots, one based on `num_words` and one based on `binned_num_words` that would help your manager to investigate this.  Do not use faceting for this problem.  Do the plots support your manager's intuition?**
+```{r question3a}
+ggplot(data = wine_data, mapping = aes(x = factor(points), y = num_words))+
+  geom_boxplot()+
+  labs (x = "wine points", y = "number of review words", title = "The relationship between wine points and the number of review words") 
+ggplot(data = wine_data, mapping = aes(x = factor(binned_num_words), y = points))+
+  geom_boxplot()+
+  labs (x = "number of review words", y = "wine points", title = "The relationship between wine points and the number of review words")
+```
+# This plot supports my manager's intuition. Because as the wine points go up, the median number of review words  increases. Also, from the second graph, for wines with high number of review words, the median rating point is higher from wines with low and middle number of review words. 
+
+### b) 
+Your manager is on vacation and it is rather slow in the office, so you decide to explore the wine data set. You know that most of the users of your app live in the U.S. and you wonder whether the users give higher ratings to wines made in the U.S. Fortunately, you've already made a data set of the reviews for wines made in the U.S., France, and Italy called `three_country_data`. **Using three_country_data, make a plot that compares the distribution of ratings for each country. Do you see evidence that U.S. raters favor wines from the U.S.? Why or why not?**
+```{r question3c}
+three_country_data <- wine_data %>% filter(country %in% c("US", "France", "Italy"))
+ggplot (data = three_country_data, mapping = aes (x = country, y = points))+
+  geom_boxplot()+
+   labs (x = "country", y = "wine points", title = "Wine points in US, France, Italy")
+```
+# No, I do not see evidence that U.S. raters favor wines from the U.S.. For wines from France, Italy, and U.S., most of them all receive similar rating points, with approximately the same median. The middle 50 percent of wines for all three countries receive points approximately from 87.5 to 92.5. Thus, there's no evidence that U.S. raters favor wines from the U.S. 
+
+## 4.
+Your coworker is planning a wine tasting vacation in France. She is convinced that "Whine" app users choose to review wines from only the best provinces in France. **Using france_wine_data, make a plot of the number of reviewed wines from France by province. Which region do you think your coworker should visit?**
+```{r question4}
+france_wine_data <- wine_data %>% filter(country == "France")
+ggplot(data = france_wine_data, mapping = aes(x = province))+
+  geom_bar(position = "dodge")+
+  labs (x = "Provinces in France", y = "number of reviews", title = "The relationship between provinces in France and number of reviews")
+```
+# My coworker should visit Bordeaux because this province has the highest number of reviews.  
+
+## 5.
+
+### a)
+The product manager from question 2b is back again. She just got back from a meeting with her boss who wants to know if there is any visual evidence of a relationship between the points given to a wine and the ratio of positive to negative words in its review. **Make a plot of this relationship. Do you think there is any clear evidence of a relationship between these two variables? Why or why not?**
+
+```{r question5a}
+ggplot(data = wine_data, mapping = aes(x = factor(points), y = pos_neg_sentiment_ratio))+
+  geom_boxplot()+
+  labs (x = "wine points", y = "the ratio of postive to negative words in reviews", title = "The relationship between wine points and the ratio of postive to negative words in reviews")
+```
+# No, I think there's no clear evidence of a relationship between these two variables. As the wine points increase, the ratio of positive to negative words in reviews does not increase significantly. 
+
+### b) 
+The product manager upon seeing the plot you made for 5a wants to know what this looks like if broken down by country.  She only wants to see this for the US, France, and Italy, so you should use `three_country_data`.
+ **Make a plot that best answers her question. Consider transforming the x-axis.**
+```{r question5b}
+ggplot(data = three_country_data, mapping = aes(x = factor(points), y = pos_neg_sentiment_ratio))+
+  geom_boxplot()+
+  labs (x = "wine points", y = "the ratio of postive to negative words in reviews", title = "The relationship between wine points and the ratio of postive to negative words in France, Italy, and US")+
+  facet_wrap(~country)
+```
+
+
+# What You Should Upload to Blackboard
+Knit this .Rmd file into an html file. Upload both the .html and .Rmd files as a **single** .zip file to Blackboad by the due date. You can find instructions for making a .zip file on Piazza: https://piazza.com/class/k54ht3tm1d64u5?cid=11

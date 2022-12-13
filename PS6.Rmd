@@ -1,0 +1,192 @@
+---
+title: "Problem Set 6"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+---
+-----
+
+### NAME: Fang Jingyi
+### USC ID: 8020938911
+### People I discussed this with:
+### **DUE DATE: 3/13 at 11am **  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Start by downloading the file `fall2019.Rdata` from blackboard (go to Content -> Data) and putting it in your `BUAD312/data/` folder.  This data comes from the [USC Schedule of Classes from Fall 2019](https://web-app.usc.edu/ws/soc_archive/soc/term-20193/). If you'd like to know how one can write R code to download data from a website like this, you should visit Patrick's office hours and ask him!
+
+#1. Getting started with this new data set
+##a)
+Load the data and then use the function `glimpse` to look at the variables included in the data frame.  As always, if R says it can't find a function, think about what R package(s) may be needed.
+```{r question1a}
+library(tidyverse)
+load("/Users/wangxiaoming/Documents/BUAD312/data/fall2019.Rdata")
+glimpse(classes)
+```
+##b)
+Looking at the output above, which variable can be used to determine the start time of a class? Is this a numerical variable or a categorical variable?
+
+# "Start time of day" can be used to determine the start time of a class. This is a numerical variable. 
+
+##c)
+Based on your previous answer, make a plot that allows one to see, for each hour, how many classes start within that hour.
+
+```{r question1c}
+ggplot(classes, aes(x = start_time_of_day))+
+  geom_histogram(color = "white", binwidth = 1)+
+  labs(x = "Start time of a class", y = "Number of classes", title = "The number of classes starting within each hour throughout the day  ")
+```
+
+##d)
+During which hour of the day do the most classes start?
+
+# 2:00 pm.
+
+
+##e)
+For the rest of this problem set, let's restrict our attention to classes that start at 2:00pm (that is, exactly on the hour). Create a data frame called `df` that has just these classes.
+
+```{r question1e}
+df <- classes%>%
+  filter(start_time_of_day == 14)
+```
+
+#2. Statistical Sampling
+Here is the main question we will be investigating in this problem set: _What proportion of USC classes starting at 2pm in Fall 2019 have more than 50 students registered?_
+
+##a)
+What is the population (aka, the study population) implied by the question being investigated?  Be sure to answer this precisely.
+
+# The population is all USC classes starting at 2pm in Fall 2019. 
+
+##b) 
+What is the population size?
+
+```{r question2b}
+df%>%
+  count()
+```
+
+##c) 
+What is the population parameter?  (Just like in part a, this is implied by the question being investigated.)
+
+# The population parameter is the proportion of classes having more than 50 students registered among all USC classes starting at 2pm in Fall 2019. 
+
+##d)
+Given that we have the entire population of data stored in `df`, we can in fact compute the population parameter's value.  Please do so.
+```{r question2d}
+df%>%
+  mutate(registered_class = Registered > 50)%>%
+  summarize(proportion = sum(registered_class)/1618)
+ 
+```
+
+##e)
+Now imagine you don't have access to the entire population but that you can only get a sample of size n = 25. **Use R to draw a SRS of this size.** Call the resulting data frame `my_sample` Note: Sampling should be without replacement.  Also, because this (and certain steps that follow) involve R's random number generator, please start with a line that sets the random seed to be 123.  This will ensure that all of us get the same random samples selected and also that everytime you knit this document you'll get the same results.
+```{r question2e}
+set.seed(123)
+my_sample <- sample_n(df, size = 25)
+```
+
+##f)
+What would be a reasonable summary statistic to calculate on your sample of data for estimating the population parameter in (b)?
+
+# The summary statistic is the proportion of classes having more than 50 students registered in my sample.
+
+##g)
+Calculate the value of this statistic on `my_sample`.
+
+```{r question2g}
+my_sample%>%
+  mutate(registered_class = Registered > 50)%>%
+  summarize(proportion = sum(registered_class)/25)
+```
+
+##h)
+Repeat the process from parts (e) and (g), but instead of saving the sampled data into a data frame (as you did in part e), instead just use the pipe to connect the two parts of the code, so your code simply outputs the value of the sample statistic on a different random sample (still of size n = 25). Note: this time you do not want to set the seed.  It's sufficient to do it just the one time in the Rmd file.
+
+```{r question2h}
+df%>%
+  sample_n(size = 25)%>%
+  mutate(registered_class = Registered > 50)%>%
+  summarize(proportion = sum(registered_class)/25)
+```
+
+##i)
+Use the function `rep_sample_n` (from the `moderndive` R package) to draw 5000 SRS's of size n = 25 and compute the sample statistic from (e) on each of these 5000 samples. Call the resulting data frame `many_sample_statistics`.
+```{r question2i}
+library(moderndive)
+many_sample_statistics <- df%>%
+  rep_sample_n(size = 25, reps = 5000)%>%
+  mutate(registered_class = Registered > 50)%>%
+  summarize(proportion = sum(registered_class)/25)
+```
+
+##j)
+Make a histogram showing the sampling distribution of your sample statistic. Also, add a red vertical line showing the value of the population parameter that you computed in (d). Hint: Adding the code ` + geom_vline(xintercept = 2, color = "red")` to an existing plot would draw a red vertical line at x = 2.
+```{r question2j}
+many_sample_statistics%>%
+  ggplot(aes(x = proportion))+
+  geom_histogram(color = "white")+
+  geom_vline(xintercept = 0.1205192, color = "red")+
+  xlim(-0.1,1)+
+  labs(x = "Proportion of classes having more than 50 students registered in 5000 samples", y = "Number of proportions", title = "The distribution of proportion of classes having more than 50 students registered in 5000 samples")
+  
+```
+
+##k)
+Calculate how far on average (over the 5000 realizations) your sample statistic is from the population parameter's value.  Hint: Use the `abs` function for this.  For example, if on one run, your sample statistic is `a` and the population parameter is `b`, then use `abs(a-b)` to measure how far apart they are.
+```{r question2k}
+many_sample_statistics%>%
+  mutate(abs_err = abs(proportion - 0.1205192	))%>%
+  summarize(avg_err = mean(abs_err))
+```
+
+
+##l)
+Make the histogram + vertical line as in (j), but this time suppose we are using SRS's of size n = 100. Note: We'll want a consistent x-axis scale in all the plots, so use ` + xlim(-0.1,1)` in all histogram plots (including part j).
+
+```{r question2l}
+many_sample_statistics2 <- df%>%
+  rep_sample_n(size = 100, reps = 5000)%>%
+  mutate(registered_class = Registered > 50)%>%
+  summarize(proportion = sum(registered_class)/100)
+
+many_sample_statistics2%>%
+  ggplot(aes(x = proportion))+
+  geom_histogram(color = "white")+
+  geom_vline(xintercept = 0.1205192, color = "red")+
+  xlim(-0.1,1)+
+  labs(x = "Proportion of classes having more than 50 students registered in 5000 samples", y = "Number of proportions", title = "The distribution of proportion of classes having more than 50 students registered in 5000 samples")
+
+
+```
+
+##m)
+Do the same as in the previous problem, except change to SRS's of size n = 4.
+
+```{r question2m}
+many_sample_statistics3 <- df%>%
+  rep_sample_n(size = 4, reps = 5000)%>%
+  mutate(registered_class = Registered > 50)%>%
+  summarize(proportion = sum(registered_class)/4)
+
+many_sample_statistics3%>%
+  ggplot(aes(x = proportion))+
+  geom_histogram(color = "white")+
+  geom_vline(xintercept = 0.1205192, color = "red")+
+  xlim(-0.1,1)+
+  labs(x = "Proportion of classes having more than 50 students registered in 5000 samples", y = "Number of proportions", title = "The distribution of proportion of classes having more than 50 students registered in 5000 samples")
+
+```
+
+##n)
+Looking at the plots you made in parts (j), (l), and (m), explain what you observe and explain why this makes sense.
+
+# With a larger sample size, the distribution of sample proportions gets narrower and sample proportions become clustering around the true population proportion. The reason is that with a larger sample size, the sample more resembles the population, and thus summary statistics better predict population parameter. 
+
+# What You Should Upload to Blackboard
+Knit this .Rmd file into an html file. Upload both the .html and .Rmd files as a **single** .zip file to Blackboad by the due date. You can find instructions for making a .zip file on Piazza: https://piazza.com/class/k54ht3tm1d64u5?cid=11
